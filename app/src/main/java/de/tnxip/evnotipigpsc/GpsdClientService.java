@@ -1,4 +1,4 @@
-package de.tnxip.gpsdclient;
+package de.tnxip.evnotipigpsc;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -63,7 +63,7 @@ public class GpsdClientService extends Service implements LocationListener, Nmea
                     NotificationManager.IMPORTANCE_LOW));
         }
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "GPSd Client");
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "GPSd Client:wake");
         wakeLock.acquire();
     }
 

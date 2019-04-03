@@ -1,4 +1,4 @@
-package de.tnxip.gpsdclient;
+package de.tnxip.evnotipigpsc;
 
 import android.util.Log;
 
