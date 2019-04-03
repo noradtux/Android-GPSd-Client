@@ -1,4 +1,4 @@
-package io.github.tiagoshibata.gpsdclient;
+package de.tnxip.gpsdclient;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -23,8 +23,8 @@ import java.net.SocketException;
 // TODO NmeaListener is deprecated in API level 24
 // Replace with OnNmeaMessageListener when support for old devices is dropped
 public class GpsdClientService extends Service implements LocationListener, NmeaListener {
-    public static final String GPSD_SERVER_ADDRESS = "io.github.tiagoshibata.GPSD_SERVER_ADDRESS";
-    public static final String GPSD_SERVER_PORT = "io.github.tiagoshibata.GPSD_SERVER_PORT";
+    public static final String GPSD_SERVER_ADDRESS = "de.tnxip.GPSD_SERVER_ADDRESS";
+    public static final String GPSD_SERVER_PORT = "de.tnxip.GPSD_SERVER_PORT";
     private static final String TAG = "GpsdClientService";
     private static final String NOTIFICATION_CHANNEL = "gpsd_streaming";
     private static final int NOTIFICATION_ID = 1;
@@ -86,7 +86,7 @@ public class GpsdClientService extends Service implements LocationListener, Nmea
         startForeground(NOTIFICATION_ID, builder.build());
         if (sensorStream != null)
             sensorStream.stop();
-        // Note: GPSD_SERVER_ADDRESS must in a resolved form.
+        // Note: GPSD_SERVER_ADDRESS must be in a resolved form.
         // An exception will be thrown if a hostname is given, since the service's main thread is
         // the UI thread when sharing the process between the activity and the service, and
         // networking on the UI thread is forbidden. See:

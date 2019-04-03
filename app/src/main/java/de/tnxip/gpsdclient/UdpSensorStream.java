@@ -1,4 +1,4 @@
-package io.github.tiagoshibata.gpsdclient;
+package de.tnxip.gpsdclient;
 
 import android.util.Log;
 
@@ -54,7 +54,7 @@ class UdpSensorStream {
 
     /**
      * Queue data to the networking thread.
-     * <p>
+     *
      * The offer method is used, which is non-blocking, to avoid lockups if
      * called from the UI thread. Note, however, that the message might be
      * discarded if the queue is full (highly unlikely in our scenario, since

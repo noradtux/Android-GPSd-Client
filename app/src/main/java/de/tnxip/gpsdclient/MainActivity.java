@@ -1,14 +1,18 @@
-package io.github.tiagoshibata.gpsdclient;
+package de.tnxip.gpsdclient;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -18,24 +22,38 @@ import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.lang.ref.WeakReference;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+
 public class MainActivity extends Activity {
     private static final int REQUEST_CODE_FINE_LOCATION = 0;
     private static final String SERVER_ADDRESS = "SERVER_ADDRESS";
     private static final String SERVER_PORT = "SERVER_PORT";
+    private static final String NETWORK_SSID = "NETWORK_SSID";
     private Intent gpsdClientServiceIntent;
     private SharedPreferences preferences;
     private TextView textView;
+    private TextView networkSsidTextView;
     private TextView serverAddressTextView;
     private TextView serverPortTextView;
     private Button startStopButton;
     private boolean connected;
     private ServiceConnection serviceConnection = new ServiceConnection() {
-        private LoggingCallback logger = message -> runOnUiThread(() -> print(message));
+        private LoggingCallback logger = new LoggingCallback() {
+            @Override
+            public void log(final String message) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        print(message);
+                    }
+                });
+            }
+        };
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -50,7 +68,7 @@ public class MainActivity extends Activity {
             startStopButton.setEnabled(true);
         }
     };
-    private AsyncTask<String, Void, String> gpsdServiceTask;
+    private AsyncTask<String, Void, String> gpsdServiceTask = new StartGpsdServiceTask(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,15 +76,22 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         textView = findViewById(R.id.textView);
         textView.setMovementMethod(new ScrollingMovementMethod());
+        networkSsidTextView = findViewById(R.id.netSSID);
         serverAddressTextView = findViewById(R.id.serverAddress);
         serverPortTextView = findViewById(R.id.serverPort);
         startStopButton = findViewById(R.id.startStopButton);
 
         preferences = getPreferences(MODE_PRIVATE);
-        String address = preferences.getString(SERVER_ADDRESS, "");
+
+        String net_ssid = preferences.getString(NETWORK_SSID, "EVNotiPI-xxxx");
+        if (!net_ssid.isEmpty())
+            networkSsidTextView.setText(net_ssid);
+
+        String address = preferences.getString(SERVER_ADDRESS, "192.168.8.205");
         if (!address.isEmpty())
             serverAddressTextView.setText(address);
-        int port = preferences.getInt(SERVER_PORT, -1);
+
+        int port = preferences.getInt(SERVER_PORT, 5000);
         if (port > 0)
             serverPortTextView.setText(String.valueOf(port));
 
@@ -78,8 +103,11 @@ public class MainActivity extends Activity {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-                checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE_FINE_LOCATION);
+        }
+
+        this.registerReceiver(new NetworkChangeReceiver(this),new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
     @Override
@@ -92,8 +120,8 @@ public class MainActivity extends Activity {
         } catch (NumberFormatException e) {
             editor.remove(SERVER_PORT);
         }
-        editor.putString(SERVER_ADDRESS, serverAddressTextView.getText().toString())
-                .apply();
+        editor.putString(NETWORK_SSID, networkSsidTextView.getText().toString()).apply();
+        editor.putString(SERVER_ADDRESS, serverAddressTextView.getText().toString()).apply();
     }
 
     @Override
@@ -193,6 +221,7 @@ public class MainActivity extends Activity {
         this.connected = connected;
         startStopButton.setText(connected ? R.string.stop : R.string.start);
         startStopButton.setEnabled(false);
+        networkSsidTextView.setEnabled(!connected);
         serverAddressTextView.setEnabled(!connected);
         serverPortTextView.setEnabled(!connected);
     }
@@ -207,4 +236,43 @@ public class MainActivity extends Activity {
     private void print(String message) {
         textView.append(message + "\n");
     }
+
+    private static class NetworkChangeReceiver extends BroadcastReceiver {
+        private WeakReference<MainActivity> activityRef;
+
+        NetworkChangeReceiver(MainActivity activity) {
+            activityRef = new WeakReference<>(activity);
+        }
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            MainActivity activity = activityRef.get();
+            if (activity == null)
+                return;
+
+            String action = intent.getAction();
+            Toast.makeText(context, "Action:" + action, Toast.LENGTH_SHORT).show();
+
+            switch(action) {
+                case ConnectivityManager.CONNECTIVITY_ACTION:
+                    ConnectivityManager connMgr = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                    NetworkInfo wifi = connMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+                    boolean isConnected = wifi != null && wifi.isConnectedOrConnecting();
+                    if (isConnected) {
+                        Toast.makeText(context, "GPSd Starting", Toast.LENGTH_SHORT).show();
+                        activity.gpsdServiceTask = new StartGpsdServiceTask(activity);
+                        activity.gpsdServiceTask.execute(activity.serverAddressTextView.getText().toString(), activity.serverPortTextView.getText().toString());
+                        activity.setServiceConnected(true);
+                    } else {
+                        Toast.makeText(context, "GPSd Stopping", Toast.LENGTH_SHORT).show();
+                        activity.stopGpsdService();
+                        activity.setServiceConnected(false);
+                        activity.startStopButton.setEnabled(true);
+                    }
+                    break;
+            }
+        }
+
+    };
 }
