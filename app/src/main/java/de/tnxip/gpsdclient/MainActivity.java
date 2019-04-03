@@ -13,6 +13,8 @@ import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiInfo;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -34,6 +36,7 @@ public class MainActivity extends Activity {
     private static final String SERVER_ADDRESS = "SERVER_ADDRESS";
     private static final String SERVER_PORT = "SERVER_PORT";
     private static final String NETWORK_SSID = "NETWORK_SSID";
+    private static final String MAIN_PREFS = "MAIN_PREFS";
     private Intent gpsdClientServiceIntent;
     private SharedPreferences preferences;
     private TextView textView;
@@ -81,15 +84,13 @@ public class MainActivity extends Activity {
         serverPortTextView = findViewById(R.id.serverPort);
         startStopButton = findViewById(R.id.startStopButton);
 
-        preferences = getPreferences(MODE_PRIVATE);
+        preferences = getSharedPreferences(MAIN_PREFS, MODE_PRIVATE);
 
         String net_ssid = preferences.getString(NETWORK_SSID, "EVNotiPI-xxxx");
-        if (!net_ssid.isEmpty())
-            networkSsidTextView.setText(net_ssid);
+        if (net_ssid != null && !net_ssid.isEmpty()) networkSsidTextView.setText(net_ssid);
 
         String address = preferences.getString(SERVER_ADDRESS, "192.168.8.205");
-        if (!address.isEmpty())
-            serverAddressTextView.setText(address);
+        if (address != null && !address.isEmpty()) serverAddressTextView.setText(address);
 
         int port = preferences.getInt(SERVER_PORT, 5000);
         if (port > 0)
@@ -114,14 +115,21 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         stopGpsdService();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
         SharedPreferences.Editor editor = preferences.edit();
         try {
             editor.putInt(SERVER_PORT, validatePort(serverPortTextView.getText().toString()));
         } catch (NumberFormatException e) {
             editor.remove(SERVER_PORT);
         }
-        editor.putString(NETWORK_SSID, networkSsidTextView.getText().toString()).apply();
-        editor.putString(SERVER_ADDRESS, serverAddressTextView.getText().toString()).apply();
+        editor.putString(SERVER_ADDRESS, serverAddressTextView.getText().toString())
+                .putString(NETWORK_SSID, networkSsidTextView.getText().toString())
+                .apply();
     }
 
     @Override
@@ -251,19 +259,28 @@ public class MainActivity extends Activity {
                 return;
 
             String action = intent.getAction();
-            Toast.makeText(context, "Action:" + action, Toast.LENGTH_SHORT).show();
 
+            assert action != null;
             switch(action) {
                 case ConnectivityManager.CONNECTIVITY_ACTION:
                     ConnectivityManager connMgr = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
                     NetworkInfo wifi = connMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
-                    boolean isConnected = wifi != null && wifi.isConnectedOrConnecting();
+                    boolean isConnected = wifi != null && wifi.isConnected();
                     if (isConnected) {
-                        Toast.makeText(context, "GPSd Starting", Toast.LENGTH_SHORT).show();
-                        activity.gpsdServiceTask = new StartGpsdServiceTask(activity);
-                        activity.gpsdServiceTask.execute(activity.serverAddressTextView.getText().toString(), activity.serverPortTextView.getText().toString());
-                        activity.setServiceConnected(true);
+                        final WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(context.WIFI_SERVICE);
+                        final WifiInfo connectionInfo = wifiManager.getConnectionInfo();
+                        if (connectionInfo != null) {
+                            String wantSsid = "\"" + activity.networkSsidTextView.getText().toString() + "\"";
+                            String ssid = connectionInfo.getSSID();
+
+                            if (!ssid.isEmpty() && ssid.equals(wantSsid)) {
+                                Toast.makeText(context, "GPSd Starting", Toast.LENGTH_SHORT).show();
+                                activity.gpsdServiceTask = new StartGpsdServiceTask(activity);
+                                activity.gpsdServiceTask.execute(activity.serverAddressTextView.getText().toString(), activity.serverPortTextView.getText().toString());
+                                activity.setServiceConnected(true);
+                            }
+                        }
                     } else {
                         Toast.makeText(context, "GPSd Stopping", Toast.LENGTH_SHORT).show();
                         activity.stopGpsdService();
@@ -273,6 +290,5 @@ public class MainActivity extends Activity {
                     break;
             }
         }
-
-    };
+    }
 }
