@@ -268,7 +268,7 @@ public class MainActivity extends Activity {
 
                     boolean isConnected = wifi != null && wifi.isConnected();
                     if (isConnected) {
-                        final WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(context.WIFI_SERVICE);
+                        final WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
                         final WifiInfo connectionInfo = wifiManager.getConnectionInfo();
                         if (connectionInfo != null) {
                             String wantSsid = "\"" + activity.networkSsidTextView.getText().toString() + "\"";
