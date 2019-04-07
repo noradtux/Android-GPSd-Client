@@ -65,6 +65,8 @@ public class GpsdClientService extends Service implements LocationListener, Nmea
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "GPSd Client:wake");
         wakeLock.acquire();
+
+        Log.d(TAG,"running");
     }
 
     @Override
@@ -113,10 +115,12 @@ public class GpsdClientService extends Service implements LocationListener, Nmea
         if (sensorStream != null)
             sensorStream.stop();
         wakeLock.release();
+        Log.d(TAG,"destroyed");
     }
 
     @Override
     public void onNmeaReceived(long timestamp, String nmea) {
+        Log.d(TAG,"nmea");
         if (sensorStream != null)
             sensorStream.send(nmea + "\r\n");
     }
