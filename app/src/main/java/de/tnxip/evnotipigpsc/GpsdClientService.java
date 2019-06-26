@@ -77,6 +77,9 @@ public class GpsdClientService extends Service implements LocationListener, Nmea
         if (serverAddress == null || serverPort <= 0)
             throw new RuntimeException(
                     "GpsdClientService requires parameters " + GPSD_SERVER_ADDRESS + " and " + GPSD_SERVER_PORT);
+
+        Log.d(TAG, "Use gpsd on " + serverAddress + ":" + serverPort);
+
         Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
                 new Notification.Builder(getApplicationContext(), NOTIFICATION_CHANNEL) :
                 new Notification.Builder(getApplicationContext());
@@ -120,7 +123,7 @@ public class GpsdClientService extends Service implements LocationListener, Nmea
 
     @Override
     public void onNmeaReceived(long timestamp, String nmea) {
-        Log.d(TAG,"nmea");
+        //Log.d(TAG,"nmea");
         if (sensorStream != null)
             sensorStream.send(nmea + "\r\n");
     }

@@ -12,14 +12,16 @@ import android.util.Log;
 import android.widget.Toast;
 
 public class NetworkChangeReceiver extends BroadcastReceiver {
+    private static final String TAG = "NetworkChangeReceiver";
+
     @Override
     public void onReceive(Context context, Intent intent) {
         GPSdApplication app = (GPSdApplication) context.getApplicationContext();
 
         String action = intent.getAction();
-        Log.d("NetworkChangeReceiver","Got action " + action);
-        //if (app.activity != null)
-        //    Toast.makeText(app.activity, "Action: "+action, Toast.LENGTH_SHORT).show();
+        Log.d(TAG,"Got action " + action);
+        if (app.activity != null)
+            Toast.makeText(app.activity, "Action: "+action, Toast.LENGTH_SHORT).show();
         SharedPreferences preferences = context.getSharedPreferences(MainActivity.MAIN_PREFS, Context.MODE_PRIVATE);
 
         assert action != null;
@@ -33,6 +35,7 @@ public class NetworkChangeReceiver extends BroadcastReceiver {
                 if (isConnected) {
                     final WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
                     final WifiInfo connectionInfo = wifiManager.getConnectionInfo();
+
                     if (connectionInfo != null) {
                         String wantSsid = "\"" + preferences.getString(MainActivity.NETWORK_SSID, "") + "\"";
                         String ssid = connectionInfo.getSSID();

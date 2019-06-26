@@ -58,6 +58,16 @@ public class MainActivity extends Activity {
         if (port > 0)
             serverPortTextView.setText(String.valueOf(port));
 
+        // Write values to preferences to make sure they are set
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(NETWORK_SSID, networkSsidTextView.getText().toString()).apply();
+        editor.putString(SERVER_ADDRESS, serverAddressTextView.getText().toString()).apply();
+        try {
+            editor.putInt(SERVER_PORT, validatePort(serverPortTextView.getText().toString())).apply();
+        } catch (NumberFormatException e) {
+            editor.remove(SERVER_PORT);
+        }
+
         LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             print("GPS is not enabled! Go to Settings and enable a location mode with GPS");
@@ -72,7 +82,7 @@ public class MainActivity extends Activity {
 
         setServiceConnectedUI(app.getServiceConnected());
         app.setActivity(this);
-        //this.registerReceiver(new NetworkChangeReceiver(),new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+        app.registerNetworkChangeReceiver();
 
         networkSsidTextView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override

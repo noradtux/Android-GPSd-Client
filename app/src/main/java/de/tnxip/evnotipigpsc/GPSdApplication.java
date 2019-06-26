@@ -1,10 +1,14 @@
 package de.tnxip.evnotipigpsc;
 
 import android.app.Application;
+import android.app.Notification;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.net.ConnectivityManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
@@ -18,10 +22,39 @@ public class GPSdApplication extends Application {
     private Intent gpsdClientServiceIntent;
     private boolean connected = false;
     protected MainActivity activity = null;
+    private boolean NetworkChangeReceiverRegistered = false;
+    private static final String NOTIFICATION_CHANNEL = "gpsd_streaming";
+    private static final int NOTIFICATION_ID = 1;
 
     public void setActivity(MainActivity activity) {
         this.activity = activity;
     }
+
+    // NetworkChangeReceiver
+
+    public void registerNetworkChangeReceiver() {
+        if (!NetworkChangeReceiverRegistered) {
+            this.registerReceiver(new NetworkChangeReceiver(), new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+            NetworkChangeReceiverRegistered = true;
+            Log.d("NetworkChangeReceiver","registered");
+
+            /*Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+                    new Notification.Builder(getApplicationContext(), NOTIFICATION_CHANNEL) :
+                    new Notification.Builder(getApplicationContext());
+            builder
+                    .setSmallIcon(R.drawable.notification_icon)
+                    .setContentTitle("Streaming GPS")
+                    .setContentText("Waiting for SSID")
+                    .build();
+            startForeground(NOTIFICATION_ID, builder.build());*/
+        }
+    }
+
+    public void unregisterNetworkChangeReceiver() {
+        NetworkChangeReceiverRegistered = false;
+    }
+
+    // GpsdService
 
     public void startGpsdService(String address, String port) {
         Log.d("GPSdApplication","GPSd Starting");
@@ -143,6 +176,8 @@ public class GPSdApplication extends Application {
                     app.activity.print(e.getMessage());
             }
         }
+
+        // Helper
 
         private static int validatePort(String value) {
             int port = Integer.parseInt(value);
