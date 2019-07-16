@@ -38,7 +38,7 @@ public class GPSdApplication extends Application {
             NetworkChangeReceiverRegistered = true;
             Log.d("NetworkChangeReceiver","registered");
 
-            /*Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+            Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
                     new Notification.Builder(getApplicationContext(), NOTIFICATION_CHANNEL) :
                     new Notification.Builder(getApplicationContext());
             builder
@@ -46,7 +46,7 @@ public class GPSdApplication extends Application {
                     .setContentTitle("Streaming GPS")
                     .setContentText("Waiting for SSID")
                     .build();
-            startForeground(NOTIFICATION_ID, builder.build());*/
+            startForeground(NOTIFICATION_ID, builder.build());
         }
     }
 
